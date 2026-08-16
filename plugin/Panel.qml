@@ -29,6 +29,12 @@ Panel {
   property string hotspotClients: ""
   property string lastError: ""
 
+  // Password editing state.
+  property bool editingPassword: false
+  property string passwordDraft: ""
+  property bool passwordBusy: false
+  property string passwordError: ""
+
   property var qrRows: []
   property int qrSize: 0
   property bool qrLoading: false
@@ -50,7 +56,7 @@ Panel {
   property bool cursorActive: false
   property string focusSection: "hero"
   property int actionIndex: 0
-  readonly property int actionCount: 2  // copy password, refresh QR
+  readonly property int actionCount: 3  // copy password, refresh QR, edit password
 
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
@@ -118,6 +124,31 @@ Panel {
     Quickshell.execDetached(["bash", "-c", "printf %s " + Util.shellQuote(hotspotPassword) + " | wl-copy"])
   }
 
+  function startPasswordEdit() {
+    if (passwordBusy) return
+    passwordDraft = hotspotPassword || ""
+    passwordError = ""
+    editingPassword = true
+    Qt.callLater(function() { if (passwordField) passwordField.forceActiveFocus() })
+  }
+
+  function cancelPasswordEdit() {
+    editingPassword = false
+    passwordDraft = ""
+    passwordError = ""
+    Qt.callLater(function() { if (keyCatcher) keyCatcher.forceActiveFocus() })
+  }
+
+  function savePassword() {
+    if (passwordBusy) return
+    var draft = passwordDraft.trim()
+    if (draft.length < 8) { passwordError = "Minimum 8 characters"; return }
+    passwordBusy = true
+    passwordError = ""
+    passProc.command = ["bash", "-c", "pkexec " + root.helper + " set-password " + Util.shellQuote(draft)]
+    passProc.running = true
+  }
+
   function statusLine() {
     if (isOn) {
       var line = "ON · CH " + (hotspotChannel || "—") + " · " + (hotspotClients ? hotspotClients + " DEVICE" + (hotspotClients === "1" ? "" : "S") : "NO CLIENTS")
@@ -147,6 +178,7 @@ Panel {
     if (focusSection === "hero") toggle()
     else if (actionIndex === 0) copyPassword()
     else if (actionIndex === 1) generateQr()
+    else if (actionIndex === 2) startPasswordEdit()
   }
 
   function setSection(section, index) {
@@ -158,6 +190,7 @@ Panel {
   readonly property bool heroHasCursor: cursorActive && focusSection === "hero"
   readonly property bool copyHasCursor: cursorActive && focusSection === "actions" && actionIndex === 0
   readonly property bool qrHasCursor: cursorActive && focusSection === "actions" && actionIndex === 1
+  readonly property bool editHasCursor: cursorActive && focusSection === "actions" && actionIndex === 2
 
   // ---- Processes --------------------------------------------------------
   Process {
@@ -192,6 +225,23 @@ Panel {
     onExited: function(code) {
       if (code !== 0) root.lastError = String(qrErr.text || "").trim().slice(0, 120) || ("QR failed: exit " + code)
       qrLoading = false
+    }
+  }
+
+  Process {
+    id: passProc
+    stdout: StdioCollector { id: passOut; waitForEnd: true }
+    stderr: StdioCollector { id: passErr; waitForEnd: true }
+    onExited: function(code) {
+      passwordBusy = false
+      if (code !== 0) {
+        passwordError = String(passErr.text || passOut.text || "").replace(/\s+/g, " ").trim().slice(0, 120) || ("exit " + code)
+        return
+      }
+      editingPassword = false
+      passwordDraft = ""
+      root.refresh()
+      if (root.isOn) root.generateQr()
     }
   }
 
@@ -249,7 +299,7 @@ Panel {
     PanelKeyCatcher {
       id: keyCatcher
       anchors.fill: parent
-      blocked: false
+      blocked: root.editingPassword || root.passwordBusy
 
       onMoveRequested: function(dx, dy) {
         if (dy !== 0) root.moveCursor(dy)
@@ -440,10 +490,56 @@ Panel {
           }
 
           Text {
+            visible: !root.editingPassword
             text: root.hotspotPassword || "—"
             color: Qt.darker(root.foreground, 1.4)
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
+          }
+
+          TextField {
+            id: passwordField
+            visible: root.editingPassword
+            width: Style.space(130)
+            text: root.passwordDraft
+            placeholderText: "New password (8+)"
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            foreground: root.foreground
+            horizontalPadding: Style.space(6)
+            verticalPadding: Style.space(2)
+            onTextChanged: if (visible && text !== root.passwordDraft) root.passwordDraft = text
+            onAccepted: root.savePassword()
+            Keys.onEscapePressed: root.cancelPasswordEdit()
+          }
+
+          PanelActionButton {
+            visible: !root.editingPassword
+            iconText: "󰋴"
+            tooltipText: "Edit password"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            hasCursor: root.editHasCursor
+            onHovered: function(on) { if (on) root.setSection("actions", 2) }
+            onClicked: root.startPasswordEdit()
+          }
+
+          PanelActionButton {
+            visible: root.editingPassword
+            iconText: "󰀵"
+            tooltipText: "Save password"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            onClicked: root.savePassword()
+          }
+
+          PanelActionButton {
+            visible: root.editingPassword
+            iconText: "󰁟"
+            tooltipText: "Cancel"
+            foreground: root.foreground
+            fontFamily: root.fontFamily
+            onClicked: root.cancelPasswordEdit()
           }
 
           PanelActionButton {
@@ -455,6 +551,15 @@ Panel {
             onHovered: function(on) { if (on) root.setSection("actions", 0) }
             onClicked: root.copyPassword()
           }
+        }
+
+        Text {
+          visible: root.passwordError !== ""
+          text: root.passwordError
+          color: root.urgent
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          anchors.horizontalCenter: parent.horizontalCenter
         }
       }
 

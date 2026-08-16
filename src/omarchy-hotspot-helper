@@ -241,6 +241,27 @@ status_text() {
   echo "on $(ap_ssid) $(cat "$PASS_FILE" 2>/dev/null) $(uplink_iface) ${channel:-} ${clients:-0}"
 }
 
+set_password() {
+  local newpass="$1"
+  if [ "${#newpass}" -lt 8 ]; then
+    echo "Password must be at least 8 characters" >&2
+    return 1
+  fi
+  ensure_state
+  printf '%s' "$newpass" >"$PASS_FILE"
+  chmod 644 "$PASS_FILE"
+  if hotspot_on; then
+    write_hostapd_conf
+    systemctl restart omarchy-hotspot
+    sleep 1
+    if ! systemctl is-active --quiet omarchy-hotspot; then
+      echo "hostapd failed to restart with the new password" >&2
+      return 1
+    fi
+  fi
+  echo "ok"
+}
+
 run_tests() {
   # Compare daemonization modes; foreground worked, -B fails silently.
   ensure_state
@@ -280,6 +301,7 @@ case "${1:-status}" in
       start_ap
     fi
     ;;
+  set-password) set_password "${2:-}" ;;
   test) run_tests ;;
   sniff)
     timeout 6 tcpdump -i "$VIF" -n -c 25 2>&1 | head -28
@@ -295,7 +317,7 @@ case "${1:-status}" in
     pgrep -a hostapd 2>&1
     ;;
   *)
-    echo "usage: omarchy-hotspot-helper {status|toggle|debug|test}" >&2
+    echo "usage: omarchy-hotspot-helper {status|toggle|set-password <pass>|debug|test}" >&2
     exit 2
     ;;
 esac

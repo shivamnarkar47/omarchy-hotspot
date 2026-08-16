@@ -17,7 +17,7 @@ current connection — while the station link stays up the entire time.
 - 📱 **Scannable QR code** — join with any phone camera (`WIFI:T:WPA;S:OmarchyHotspot;P:…;;`), shown right in the popup.
 - 🎛️ **Interactive panel** — hero toggle, live status (uplink, channel, connected clients), copy-password, keyboard navigation (`j/k`, `Enter`, `Esc`).
 - 🌐 **Shares any uplink** — NAT follows the default route: Ethernet, phone tether, or a VLAN-tagged interface. Whatever carries your internet is shared.
-- 🔒 **WPA2** with a persistent random password (generated once, stored in `/var/lib/omarchy-hotspot/`).
+- 🔒 **WPA2** with a persistent random password — **editable in the panel** (pencil icon → inline field; takes effect immediately, QR regenerates).
 - ⚡ **Passwordless toggling** — a scoped polkit rule lets the bar widget drive the root helper without prompts.
 
 ## How it works
