@@ -59,21 +59,37 @@ The AP runs on a **virtual interface** (`ap0`) alongside your station interface:
 
 ## Installation
 
+The repository root is a valid Omarchy plugin (`manifest.json` at the root,
+validated by `omarchy plugin validate`). Two steps:
+
 ```sh
+# 1. The bar widget (installs as local.hotspot from the repo's manifest)
+omarchy plugin add https://github.com/shivamnarkar47/omarchy-hotspot --yes
+omarchy plugin enable local.hotspot --section right
+
+# 2. The system helper (root helper, polkit rule, NM config, packages)
 git clone https://github.com/shivamnarkar47/omarchy-hotspot.git
 cd omarchy-hotspot
-./install.sh          # installs helper + polkit rule + NM config (asks for password)
-omarchy plugin clone  # skip — plugin ships in ./plugin
-cp -r plugin ~/.config/omarchy/plugins/local.hotspot
-omarchy plugin enable local.hotspot --section right
+./install.sh          # asks for your password once
 ```
 
-`install.sh` does, with one password prompt:
+`install.sh` does:
 
 1. Installs `hostapd` + `dnsmasq` (pacman)
 2. Installs `src/omarchy-hotspot-helper` → `/usr/local/bin/`
 3. Installs the polkit rule (passwordless `pkexec` for the helper only)
 4. Tells NetworkManager to never touch `ap0` (it would force station mode)
+
+## Removal
+
+```sh
+omarchy plugin remove local.hotspot --yes      # bar widget
+sudo rm /usr/local/bin/omarchy-hotspot-helper  # system helper
+sudo rm /etc/polkit-1/rules.d/50-omarchy-hotspot.rules
+sudo rm /etc/NetworkManager/conf.d/99-unmanaged-ap0.conf
+nmcli general reload
+sudo pacman -Rns hostapd dnsmasq               # optional: if nothing else uses them
+```
 
 ## Usage
 

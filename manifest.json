@@ -3,11 +3,13 @@
   "id": "local.hotspot",
   "name": "Mobile Hotspot",
   "version": "1.0.0",
-  "author": "vagabond",
+  "author": "Shivam Narkar",
   "description": "Mobile hotspot toggle: serves a Wi-Fi AP (OmarchyHotspot) while the current connection stays up",
-  "kinds": ["bar-widget"],
+  "kinds": [
+    "bar-widget"
+  ],
   "entryPoints": {
-    "barWidget": "Panel.qml"
+    "barWidget": "plugin/Panel.qml"
   },
   "barWidget": {
     "displayName": "Mobile Hotspot",

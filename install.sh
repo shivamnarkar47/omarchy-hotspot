@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
-# Omarchy Hotspot installer.
+# Omarchy Hotspot installer — system bits.
+# (The bar widget itself installs via: omarchy plugin add <repo-url>)
 # Installs the root helper, the passwordless polkit rule, and the
 # NetworkManager exemption for the AP virtual interface.
 set -euo pipefail
 
-HELPER_SRC="$(dirname "$(readlink -f "$0")")/src/omarchy-hotspot-helper"
-RULES_SRC="$(dirname "$(readlink -f "$0")")/config/50-omarchy-hotspot.rules"
-NM_CONF_SRC="$(dirname "$(readlink -f "$0")")/config/99-unmanaged-ap0.conf"
+REPO_DIR="$(dirname "$(readlink -f "$0")")"
+HELPER_SRC="$REPO_DIR/src/omarchy-hotspot-helper"
+RULES_SRC="$REPO_DIR/config/50-omarchy-hotspot.rules"
+NM_CONF_SRC="$REPO_DIR/config/99-unmanaged-ap0.conf"
 USER="${SUDO_USER:-$(whoami)}"
+
+if (( EUID != 0 )); then
+  exec pkexec "$0" "$@"
+fi
 
 echo "==> Installing packages (hostapd, dnsmasq)"
 pacman -S --noconfirm --needed hostapd dnsmasq
@@ -23,13 +29,7 @@ echo "==> Telling NetworkManager to leave ap0 alone"
 install -m 644 "$NM_CONF_SRC" /etc/NetworkManager/conf.d/99-unmanaged-ap0.conf
 nmcli general reload || true
 
-echo "==> Installing the bar plugin"
-PLUGIN_DIR="$HOME/.config/omarchy/plugins/local.hotspot"
-mkdir -p "$PLUGIN_DIR"
-cp "$(dirname "$(readlink -f "$0")")/plugin/"* "$PLUGIN_DIR/"
-chmod +x "$PLUGIN_DIR/qr.sh"
-omarchy plugin enable local.hotspot --section right || true
-
 echo
-echo "Done! Click the hotspot icon in the bar."
-echo "SSID: OmarchyHotspot (password shown in the popup / QR code)"
+echo "Done! Now install the widget with:"
+echo "  omarchy plugin add https://github.com/shivamnarkar47/omarchy-hotspot"
+echo "  omarchy plugin enable local.hotspot --section right"
