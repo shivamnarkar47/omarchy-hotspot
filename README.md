@@ -6,7 +6,7 @@ current connection — while the station link stays up the entire time.
 
 ![kinds](https://img.shields.io/badge/Omarchy-shell%20plugin-8b5cf6) ![license](https://img.shields.io/badge/license-MIT-green) ![ci](https://github.com/shivamnarkar47/omarchy-hotspot/actions/workflows/ci.yml/badge.svg)
 
-![Hotspot panel](docs/panel.png)
+![Hotspot panel](docs/panel-final.png)
 
 *The hotspot popup: hero toggle, scannable QR code, and live connection details.*
 
