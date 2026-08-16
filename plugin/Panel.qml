@@ -39,7 +39,7 @@ Panel {
   property int qrSize: 0
   property bool qrLoading: false
 
-  readonly property string iconText: "󰣞"  // md-cellphone_arrow_down: mobile hotspot
+  readonly property string iconText: "󰥲"  // md-router_wireless_settings
 
   readonly property color foreground: bar ? bar.foreground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
@@ -421,7 +421,7 @@ Panel {
             spacing: Style.space(6)
 
             PanelActionButton {
-              iconText: "󰍙"  // md-refresh
+              iconText: "󰌻"  // md-qrcode
               tooltipText: "Regenerate QR"
               foreground: root.foreground
               fontFamily: root.fontFamily
@@ -515,7 +515,7 @@ Panel {
 
           PanelActionButton {
             visible: !root.editingPassword
-            iconText: "󰋴"
+            iconText: "󰋴"  // md-pencil
             tooltipText: "Edit password"
             foreground: root.foreground
             fontFamily: root.fontFamily
@@ -543,7 +543,7 @@ Panel {
           }
 
           PanelActionButton {
-            iconText: "󰂘"  // md-content_copy
+            iconText: ""  // cod-copy
             tooltipText: "Copy password"
             foreground: root.foreground
             fontFamily: root.fontFamily
