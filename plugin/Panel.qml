@@ -52,6 +52,9 @@ Panel {
   readonly property bool isError: hotspotState === "error"
   readonly property bool showingQr: qrSize > 0 && !qrLoading && !isError
 
+  // Copy feedback: icon flips to a checkmark briefly.
+  property bool copyFlash: false
+
   // Cursor: "hero" (toggle switch) | "actions" (copy password, refresh QR)
   property bool cursorActive: false
   property string focusSection: "hero"
@@ -122,6 +125,9 @@ Panel {
   function copyPassword() {
     if (!root.bar || !hotspotPassword) return
     Quickshell.execDetached(["bash", "-c", "printf %s " + Util.shellQuote(hotspotPassword) + " | wl-copy"])
+    // Flash the copy icon to a checkmark so the click is visibly acknowledged.
+    copyFlash = true
+    copyFlashTimer.restart()
   }
 
   function startPasswordEdit() {
@@ -243,6 +249,13 @@ Panel {
       root.refresh()
       if (root.isOn) root.generateQr()
     }
+  }
+
+  Timer {
+    id: copyFlashTimer
+    interval: 1200
+    repeat: false
+    onTriggered: root.copyFlash = false
   }
 
   Timer {
@@ -526,7 +539,7 @@ Panel {
 
           PanelActionButton {
             visible: root.editingPassword
-            iconText: "󰀵"
+            iconText: ""  // fa-check: matches the copy-feedback flash
             tooltipText: "Save password"
             foreground: root.foreground
             fontFamily: root.fontFamily
@@ -535,7 +548,7 @@ Panel {
 
           PanelActionButton {
             visible: root.editingPassword
-            iconText: "󰁟"
+            iconText: "󰁣"  // md-close_circle_outline
             tooltipText: "Cancel"
             foreground: root.foreground
             fontFamily: root.fontFamily
@@ -543,7 +556,7 @@ Panel {
           }
 
           PanelActionButton {
-            iconText: ""
+            iconText: root.copyFlash ? "" : ""  // fa-check flash
             tooltipText: "Copy password"
             foreground: root.foreground
             fontFamily: root.fontFamily
