@@ -548,7 +548,7 @@ Panel {
 
           PanelActionButton {
             visible: root.editingPassword
-            iconText: "󰁣"  // md-close_circle_outline
+            iconText: "󰜺"
             tooltipText: "Cancel"
             foreground: root.foreground
             fontFamily: root.fontFamily
