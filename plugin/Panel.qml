@@ -39,7 +39,7 @@ Panel {
   property int qrSize: 0
   property bool qrLoading: false
 
-  readonly property string iconText: "󰂒"
+  readonly property string iconText: "󰣞"  // md-cellphone_arrow_down: mobile hotspot
 
   readonly property color foreground: bar ? bar.foreground : Color.foreground
   readonly property color urgent: bar ? bar.urgent : Color.urgent
@@ -421,7 +421,7 @@ Panel {
             spacing: Style.space(6)
 
             PanelActionButton {
-              iconText: "󰔄"
+              iconText: "󰍙"  // md-refresh
               tooltipText: "Regenerate QR"
               foreground: root.foreground
               fontFamily: root.fontFamily
@@ -543,7 +543,7 @@ Panel {
           }
 
           PanelActionButton {
-            iconText: "󰅐"
+            iconText: "󰂘"  // md-content_copy
             tooltipText: "Copy password"
             foreground: root.foreground
             fontFamily: root.fontFamily
