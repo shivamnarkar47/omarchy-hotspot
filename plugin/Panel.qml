@@ -539,7 +539,7 @@ Panel {
 
           PanelActionButton {
             visible: root.editingPassword
-            iconText: ""  // fa-check: matches the copy-feedback flash
+            iconText: ""
             tooltipText: "Save password"
             foreground: root.foreground
             fontFamily: root.fontFamily
@@ -556,7 +556,7 @@ Panel {
           }
 
           PanelActionButton {
-            iconText: root.copyFlash ? "" : ""  // fa-check flash
+            iconText: root.copyFlash ? "" : ""
             tooltipText: "Copy password"
             foreground: root.foreground
             fontFamily: root.fontFamily
