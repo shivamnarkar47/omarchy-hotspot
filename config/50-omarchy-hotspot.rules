@@ -1,0 +1,7 @@
+polkit.addRule(function(action, subject) {
+  if (action.id == "org.freedesktop.policykit.exec" &&
+      subject.user == "__USER__" &&
+      action.lookup("program") == "/usr/local/bin/omarchy-hotspot-helper") {
+    return polkit.Result.YES;
+  }
+});

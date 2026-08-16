@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "local.hotspot",
+  "name": "Mobile Hotspot",
+  "version": "1.0.0",
+  "author": "vagabond",
+  "description": "Mobile hotspot toggle: serves a Wi-Fi AP (OmarchyHotspot) while the current connection stays up",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Mobile Hotspot",
+    "description": "Toggle the OmarchyHotspot Wi-Fi AP; the station connection is never dropped",
+    "category": "Network",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
