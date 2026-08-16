@@ -27,7 +27,7 @@ ascii="$(printf '%s' "$payload" | qrencode --type ASCII --margin 4 --output -)"
 while IFS= read -r line; do
   row=""
   for ((col = 0; col < ${#line}; col += 2)); do
-    [[ ${line:col:2} == *#* ]] && row+=1 || row+=0
+    [[ ${line:col:2} == *#* ]] && row+="1" || row+="0"
   done
   printf '%s\n' "$row"
 done <<<"$ascii"

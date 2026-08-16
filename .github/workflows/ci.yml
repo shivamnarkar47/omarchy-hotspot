@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Shellcheck + syntax + manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Shellcheck (helper, installer, QR generator)
+        run: |
+          shellcheck src/omarchy-hotspot-helper install.sh plugin/qr.sh
+
+      - name: Bash syntax check
+        run: |
+          bash -n src/omarchy-hotspot-helper install.sh plugin/qr.sh
+
+      - name: Validate plugin manifest is valid JSON
+        run: |
+          python3 -c "import json; json.load(open('plugin/manifest.json')); print('manifest OK')"
+
+      - name: Validate helper usage
+        run: |
+          ./src/omarchy-hotspot-helper bogus 2>&1 | grep -q usage || exit 1
+          echo "usage guard OK"
+
+      - name: Check polkit rule has no hardcoded user
+        run: |
+          grep -q '__USER__' config/50-omarchy-hotspot.rules
+          ! grep -q 'subject.user == "vagabond"' config/50-omarchy-hotspot.rules
+          echo "polkit rule portable OK"

@@ -17,7 +17,6 @@ STATE_DIR="/var/lib/omarchy-hotspot"
 PASS_FILE="$STATE_DIR/password"
 AP_CONF="$RUN_DIR/hostapd.conf"
 AP_PID="$RUN_DIR/hostapd.pid"
-DNS_PID="$RUN_DIR/dnsmasq.pid"
 AP_SUBNET="10.42.0.0/24"
 AP_GATEWAY="10.42.0.1"
 
