@@ -60,6 +60,19 @@ station_center_offset() {
   fi
 }
 
+# Center frequency (MHz) of the station's phy context (center1). iwlwifi
+# keeps a single phy context per radio, so the AP must use this exact center
+# (not an arbitrary one derived from the primary channel) or hostapd fails
+# with "Frequency not present (seg0)"/"Hardware does not support configured
+# channel" on asymmetric primary channels (e.g. ch157 in an 80 MHz block
+# centered at 5775 MHz).
+station_vht_center() {
+  local iface
+  iface="$(station_iface)"
+  [ -n "$iface" ] || return 0
+  iw dev "$iface" info 2>/dev/null | awk '{ for (i = 1; i <= NF; i++) if ($i == "center1:") { print $(i + 1); exit } }'
+}
+
 ap_ssid() {
   echo "OmarchyHotspot"
 }
@@ -98,7 +111,7 @@ ensure_vif() {
 }
 
 write_hostapd_conf() {
-  local channel freq mode ht seg0
+  local channel freq mode ht seg0 seg1 chwidth
   channel="$(station_channel)"
   if [ -z "$channel" ]; then
     channel=1
@@ -111,8 +124,10 @@ write_hostapd_conf() {
     freq=$((5000 + channel * 5))
   fi
 
-  # Mirror the station's width so the firmware beacons on the shared phy.
-  # (hostapd 2.12 derives the secondary channel from HT40+/-.)
+  # Mirror the station's width AND phy-context center (center1) so the
+  # firmware beacons on the shared phy. Using the actual center1 avoids the
+  # "Frequency not present (seg0)" failure when the primary channel sits
+  # asymmetrically inside the VHT80/160 block.
   case "$(station_width)" in
     40)
       if [ "$(station_center_offset)" = "minus" ]; then
@@ -123,11 +138,28 @@ write_hostapd_conf() {
       ;;
     80)
       ht="[HT40+]"
-      seg0=$(((freq + 20 - 5000) / 5))
+      chwidth=1
+      local vhtcenter80
+      vhtcenter80="$(station_vht_center)"
+      if [ -n "$vhtcenter80" ]; then
+        seg0=$(((vhtcenter80 - 5000) / 5))
+      else
+        # Fallback: primary at the low edge of the 80 MHz block.
+        seg0=$(((freq + 20 - 5000) / 5))
+      fi
       ;;
     160)
       ht="[HT40+]"
-      seg0=$(((freq + 40 - 5000) / 5))
+      chwidth=2
+      local vhtcenter
+      vhtcenter="$(station_vht_center)"
+      seg0=$(((vhtcenter - 5000) / 5))
+      # seg1 = center of the 80 MHz half that does NOT hold the primary.
+      if [ "$freq" -lt "$vhtcenter" ]; then
+        seg1=$(((vhtcenter + 40 - 5000) / 5))
+      else
+        seg1=$(((vhtcenter - 40 - 5000) / 5))
+      fi
       ;;
     *)
       ht="[HT20]"
@@ -146,8 +178,9 @@ wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
 ht_capab=$ht
 ${seg0:+ieee80211ac=1}
-${seg0:+vht_oper_chwidth=1}
+${seg0:+vht_oper_chwidth=$chwidth}
 ${seg0:+vht_oper_centr_freq_seg0_idx=$seg0}
+${seg1:+vht_oper_centr_freq_seg1_idx=$seg1}
 ignore_broadcast_ssid=0
 EOF
   chmod 600 "$AP_CONF"
