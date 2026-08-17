@@ -25,7 +25,7 @@ jobs:
 
       - name: Validate plugin manifest is valid JSON
         run: |
-          python3 -c "import json; json.load(open('plugin/manifest.json')); print('manifest OK')"
+          python3 -c "import json, pathlib, sys; candidates=[pathlib.Path('manifest.json'), pathlib.Path('plugin/manifest.json')]; found=[p for p in candidates if p.exists()]; assert found, 'no manifest.json found at repo root or plugin/manifest.json'; [json.load(open(p)) for p in found]; print(' '.join(f'{p} OK' for p in found))"
 
       - name: Validate helper usage
         run: |
