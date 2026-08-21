@@ -9,10 +9,21 @@ REPO_DIR="$(dirname "$(readlink -f "$0")")"
 HELPER_SRC="$REPO_DIR/src/omarchy-hotspot-helper"
 RULES_SRC="$REPO_DIR/config/50-omarchy-hotspot.rules"
 NM_CONF_SRC="$REPO_DIR/config/99-unmanaged-ap0.conf"
-USER="${SUDO_USER:-$(whoami)}"
-
 if (( EUID != 0 )); then
   exec pkexec "$0" "$@"
+fi
+
+# pkexec clears the environment and runs as root, so $USER/$(whoami) would be
+# "root" here and the polkit rule would match the wrong subject. pkexec exports
+# PKEXEC_UID for the real caller; fall back to SUDO_USER / logname / id.
+if [ -n "${PKEXEC_UID:-}" ]; then
+  USER="$(id -nu "$PKEXEC_UID")"
+elif [ -n "${SUDO_USER:-}" ]; then
+  USER="$SUDO_USER"
+elif logname >/dev/null 2>&1; then
+  USER="$(logname)"
+else
+  USER="$(id -un)"
 fi
 
 echo "==> Installing packages (hostapd, dnsmasq)"

@@ -85,6 +85,26 @@ hotspot_on() {
   systemctl is-active --quiet omarchy-hotspot 2>/dev/null
 }
 
+# The human who invoked us (root when run directly). The password must stay
+# out of other local users' reach but still be readable by the owner — the bar
+# widget (running as that user) reads it to render the join QR.
+real_user() {
+  if [ -n "${PKEXEC_UID:-}" ]; then
+    id -nu "$PKEXEC_UID"
+  elif [ -n "${SUDO_USER:-}" ]; then
+    echo "$SUDO_USER"
+  elif logname >/dev/null 2>&1; then
+    logname
+  else
+    id -un
+  fi
+}
+
+protect_passfile() {
+  chown "$(real_user)" "$PASS_FILE" 2>/dev/null || true
+  chmod 600 "$PASS_FILE"
+}
+
 ensure_state() {
   mkdir -p "$STATE_DIR" "$RUN_DIR"
   chmod 755 "$STATE_DIR"
@@ -92,7 +112,7 @@ ensure_state() {
   if [ ! -s "$PASS_FILE" ]; then
     tr -dc 'A-Za-z0-9' </dev/urandom | head -c 10 >"$PASS_FILE" || true
   fi
-  chmod 644 "$PASS_FILE"
+  protect_passfile
 }
 
 ensure_vif() {
@@ -275,14 +295,22 @@ status_text() {
 }
 
 set_password() {
-  local newpass="$1"
-  if [ "${#newpass}" -lt 8 ]; then
-    echo "Password must be at least 8 characters" >&2
+  local newpass="$1" byte_len
+  # WPA2-PSK passphrase rules: 8-63 bytes of printable ASCII. Reject control
+  # characters, DEL, and any non-ASCII byte (UTF-8 would blow the 63-byte
+  # limit once encoded and could break hostapd.conf interpolation).
+  if printf '%s' "$newpass" | LC_ALL=C grep -q '[^[:print:]]'; then
+    echo "Password must contain only printable ASCII characters" >&2
+    return 1
+  fi
+  byte_len="$(printf '%s' "$newpass" | wc -c)"
+  if [ "$byte_len" -lt 8 ] || [ "$byte_len" -gt 63 ]; then
+    echo "Password must be between 8 and 63 characters" >&2
     return 1
   fi
   ensure_state
   printf '%s' "$newpass" >"$PASS_FILE"
-  chmod 644 "$PASS_FILE"
+  protect_passfile
   if hotspot_on; then
     write_hostapd_conf
     systemctl restart omarchy-hotspot

@@ -149,6 +149,7 @@ Panel {
     if (passwordBusy) return
     var draft = passwordDraft.trim()
     if (draft.length < 8) { passwordError = "Minimum 8 characters"; return }
+    if (draft.length > 63) { passwordError = "Maximum 63 characters"; return }
     passwordBusy = true
     passwordError = ""
     passProc.command = ["bash", "-c", "pkexec " + root.helper + " set-password " + Util.shellQuote(draft)]
@@ -383,6 +384,7 @@ Panel {
           Text {
             width: parent.width
             text: root.hotspotSsid
+            textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.title
@@ -393,6 +395,7 @@ Panel {
           Text {
             width: parent.width
             text: root.statusLine()
+            textFormat: Text.PlainText
             color: root.isOn ? root.urgent : Qt.darker(root.foreground, 1.4)
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
@@ -496,6 +499,7 @@ Panel {
 
           Text {
             text: root.hotspotSsid
+            textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
@@ -505,6 +509,7 @@ Panel {
           Text {
             visible: !root.editingPassword
             text: root.hotspotPassword || "—"
+            textFormat: Text.PlainText
             color: Qt.darker(root.foreground, 1.4)
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
@@ -569,6 +574,7 @@ Panel {
         Text {
           visible: root.passwordError !== ""
           text: root.passwordError
+          textFormat: Text.PlainText
           color: root.urgent
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption
@@ -623,6 +629,7 @@ Panel {
   }
 
   component DetailValue: Text {
+    textFormat: Text.PlainText
     color: root.foreground
     font.family: root.fontFamily
     font.pixelSize: Style.font.bodySmall
