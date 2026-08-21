@@ -39,7 +39,7 @@ The AP runs on a **virtual interface** (`ap0`) alongside your station interface:
   (`omarchy-hotspot-dns.service`).
 - **iptables** does NAT/forwarding, with an explicit INPUT accept on `ap0` —
   UFW's default DROP policy would otherwise eat client DHCP/DNS.
-- The bar plugin (`local.hotspot`) polls `status` via `pkexec` and renders
+- The bar plugin (`io.github.shivamnarkar47.omarchy-hotspot`) polls `status` via `pkexec` and renders
   the popup with the QR matrix (qrencode → 0/1 modules, same format as
   `omarchy.wifiqr`).
 
@@ -63,9 +63,9 @@ The repository root is a valid Omarchy plugin (`manifest.json` at the root,
 validated by `omarchy plugin validate`). Two steps:
 
 ```sh
-# 1. The bar widget (installs as local.hotspot from the repo's manifest)
+# 1. The bar widget (installs as io.github.shivamnarkar47.omarchy-hotspot from the repo's manifest)
 omarchy plugin add https://github.com/shivamnarkar47/omarchy-hotspot --yes
-omarchy plugin enable local.hotspot --section right
+omarchy plugin enable io.github.shivamnarkar47.omarchy-hotspot --section right
 
 # 2. The system helper (root helper, polkit rule, NM config, packages)
 git clone https://github.com/shivamnarkar47/omarchy-hotspot.git
@@ -83,7 +83,7 @@ cd omarchy-hotspot
 ## Removal
 
 ```sh
-omarchy plugin remove local.hotspot --yes      # bar widget
+omarchy plugin remove io.github.shivamnarkar47.omarchy-hotspot --yes      # bar widget
 sudo rm /usr/local/bin/omarchy-hotspot-helper  # system helper
 sudo rm /etc/polkit-1/rules.d/50-omarchy-hotspot.rules
 sudo rm /etc/NetworkManager/conf.d/99-unmanaged-ap0.conf

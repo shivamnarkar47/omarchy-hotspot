@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "local.hotspot",
+  "id": "io.github.shivamnarkar47.omarchy-hotspot",
   "name": "Mobile Hotspot",
   "version": "1.0.0",
   "author": "Shivam Narkar",

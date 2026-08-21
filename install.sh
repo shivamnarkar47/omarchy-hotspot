@@ -32,4 +32,4 @@ nmcli general reload || true
 echo
 echo "Done! Now install the widget with:"
 echo "  omarchy plugin add https://github.com/shivamnarkar47/omarchy-hotspot"
-echo "  omarchy plugin enable local.hotspot --section right"
+echo "  omarchy plugin enable io.github.shivamnarkar47.omarchy-hotspot --section right"

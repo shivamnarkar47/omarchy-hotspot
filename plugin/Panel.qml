@@ -5,7 +5,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
-// Mobile hotspot panel (local.hotspot), modeled on omarchy.network:
+// Mobile hotspot panel (io.github.shivamnarkar47.omarchy-hotspot), modeled on omarchy.network:
 // a bar button that opens a keyboard-navigable popup with a hero toggle,
 // a scannable QR code, and live connection details. The AP runs on a
 // virtual interface (ap0) served by wpa_supplicant + dnsmasq via
@@ -14,8 +14,8 @@ import qs.Ui
 // from the same 0/1 matrix format as omarchy.wifiqr.
 Panel {
   id: root
-  moduleName: "local.hotspot"
-  ipcTarget: "local.hotspot"
+  moduleName: "io.github.shivamnarkar47.omarchy-hotspot"
+  ipcTarget: "io.github.shivamnarkar47.omarchy-hotspot"
 
   readonly property string helper: "/usr/local/bin/omarchy-hotspot-helper"
   readonly property string qrScript: decodeURIComponent(String(Qt.resolvedUrl("qr.sh")).replace(/^file:\/\//, ""))
