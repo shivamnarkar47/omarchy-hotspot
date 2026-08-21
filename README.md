@@ -123,6 +123,33 @@ plugin/
 Ideas: client list with MACs, per-client bandwidth, SSID/password settings
 in `shell.json`, 5GHz band preference, WPA3, scheduled on/off.
 
+## Credits
+
+This plugin stands on the shoulders of the **Omarchy** desktop environment
+(and its Quickshell shell framework) by [Basecamp / DHH](https://github.com/basecamp/omarchy),
+without which there would be no bar to plug into.
+
+Specific acknowledgement is due to Omarchy's built-in plugins that this project
+learned from and reused patterns from:
+
+- 🧭 **`omarchy.network`** — the bar widget (`plugin/Panel.qml`) is explicitly
+  modeled on its structure and conventions.
+- 📷 **`omarchy.wifiqr`** — the QR matrix generator reuses the same 0/1 module
+  format, so hotspot join codes render identically to Wi-Fi QR codes.
+
+The runtime is powered by excellent upstream free software:
+
+- [hostapd](https://w1.fi/hostapd/) — the IEEE 802.11 AP and WPA/WPA2
+  authenticator that serves the `ap0` interface.
+- [dnsmasq](https://thekelleys.org.uk/dnsmasq/doc.html) — DHCP and DNS for
+  connected clients.
+- [NetworkManager](https://networkmanager.dev/) — station connectivity and the
+  unmanaged-interface exemption that keeps `ap0` free for the AP.
+- [Quickshell](https://quickshell.org/) — the QtQuick shell framework the bar
+  widget is written in.
+- [qrencode](https://fukuchi.org/works/qrencode/) — encodes the `WIFI:` payload
+  into the scannable matrix.
+
 ## License
 
 MIT
