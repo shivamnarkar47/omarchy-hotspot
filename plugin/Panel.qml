@@ -96,17 +96,26 @@ Panel {
     var parts = String(raw || "").trim().split(/\s+/)
     if (parts[0] === "on") {
       hotspotState = "on"
-      hotspotPassword = parts[2] || ""
-      hotspotUplink = parts[3] || ""
-      hotspotChannel = parts[4] || ""
-      hotspotClients = parts[5] || ""
+      hotspotUplink = parts[2] || ""
+      hotspotChannel = parts[3] || ""
+      hotspotClients = parts[4] || ""
       if (qrSize === 0 && !qrProc.running) Qt.callLater(generateQr)
+      // Pull the passphrase straight from the user-owned secret file rather
+      // than from the status channel.
+      readPassword()
     } else {
       hotspotState = "off"
+      hotspotPassword = ""
       hotspotUplink = ""
       hotspotChannel = ""
       hotspotClients = ""
     }
+  }
+
+  function readPassword() {
+    if (passReadProc.running) return
+    passReadProc.command = ["bash", "-c", "cat " + root.passwordFile]
+    passReadProc.running = true
   }
 
   function applyQr(raw) {
@@ -262,6 +271,19 @@ Panel {
       passwordDraft = ""
       root.refresh()
       if (root.isOn) root.generateQr()
+    }
+  }
+
+  // Reads the passphrase directly from the user-owned secret file (no root,
+  // no passwordless pkexec), keeping it out of the status channel.
+  Process {
+    id: passReadProc
+    stdout: StdioCollector {
+      id: passReadOut
+      waitForEnd: true
+      onStreamFinished: function() {
+        if (root.isOn) root.hotspotPassword = String(passReadOut.text || "").trim()
+      }
     }
   }
 

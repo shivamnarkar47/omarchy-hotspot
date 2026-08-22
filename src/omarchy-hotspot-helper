@@ -291,7 +291,9 @@ status_text() {
     channel="$(iw dev "$VIF" info 2>/dev/null | awk '/channel/ { print $2; exit }')"
   fi
   clients="$(iw dev "$VIF" station dump 2>/dev/null | grep -c '^Station' || true)"
-  echo "on $(ap_ssid) $(cat "$PASS_FILE" 2>/dev/null) $(uplink_iface) ${channel:-} ${clients:-0}"
+  # The passphrase is intentionally NOT echoed here; the bar reads it directly
+  # from the secret file (owned by the user) to keep it out of this channel.
+  echo "on $(ap_ssid) $(uplink_iface) ${channel:-} ${clients:-0}"
 }
 
 set_password() {
@@ -367,32 +369,48 @@ run_tests() {
   iw dev "$VIF" del 2>/dev/null || true
 }
 
-case "${1:-status}" in
-  status) status_text ;;
-  toggle)
-    if hotspot_on; then
-      stop_ap
-    else
-      start_ap
-    fi
-    ;;
-  set-password) set_password ;;
-  test) run_tests ;;
-  sniff)
-    timeout 6 tcpdump -i "$VIF" -n -c 25 2>&1 | head -28
-    ;;
-  debug)
-    echo "--- hostapd.conf ---"
-    cat "$AP_CONF" 2>&1
-    echo "--- hostapd.log ---"
-    tail -10 "$RUN_DIR/hostapd.log" 2>&1
-    echo "--- ap0 TX ---"
-    ip -s link show "$VIF" 2>&1 | grep -A1 'TX:'
-    echo "--- hostapd procs ---"
-    pgrep -a hostapd 2>&1
-    ;;
-  *)
-    echo "usage: omarchy-hotspot-helper {status|toggle|set-password|debug|test}" >&2
-    exit 2
-    ;;
-esac
+# The passwordless pkexec polkit rule lets the bar run this helper as root.
+# Restrict that path to the subcommands the bar actually uses; diagnostic
+# subcommands (debug/sniff/test) stay available to direct root invocation
+# (e.g. `sudo omarchy-hotspot-helper debug`) but not via the passwordless path.
+helper_dispatch() {
+  case "$1" in
+    status) status_text ;;
+    toggle)
+      if hotspot_on; then
+        stop_ap
+      else
+        start_ap
+      fi
+      ;;
+    set-password) set_password ;;
+    *)
+      if [ -n "${PKEXEC_UID:-}" ]; then
+        echo "Subcommand '$1' is not permitted via pkexec" >&2
+        exit 2
+      fi
+      case "$1" in
+        test) run_tests ;;
+        sniff)
+          timeout 6 tcpdump -i "$VIF" -n -c 25 2>&1 | head -28
+          ;;
+        debug)
+          echo "--- hostapd.conf ---"
+          cat "$AP_CONF" 2>&1
+          echo "--- hostapd.log ---"
+          tail -10 "$RUN_DIR/hostapd.log" 2>&1
+          echo "--- ap0 TX ---"
+          ip -s link show "$VIF" 2>&1 | grep -A1 'TX:'
+          echo "--- hostapd procs ---"
+          pgrep -a hostapd 2>&1
+          ;;
+        *)
+          echo "usage: omarchy-hotspot-helper {status|toggle|set-password|debug|test}" >&2
+          exit 2
+          ;;
+      esac
+      ;;
+  esac
+}
+
+helper_dispatch "${1:-status}"
