@@ -33,7 +33,9 @@ echo "==> Installing helper to /usr/local/bin"
 install -m 755 "$HELPER_SRC" /usr/local/bin/omarchy-hotspot-helper
 
 echo "==> Installing polkit rule (passwordless pkexec for the helper)"
-sed "s/__USER__/$USER/g" "$RULES_SRC" > /etc/polkit-1/rules.d/50-omarchy-hotspot.rules
+# Use awk (not sed) so the username is treated as a fixed string, never as a
+# regex or replacement pattern.
+awk -v u="$USER" '{ gsub(/__USER__/, u) } 1' "$RULES_SRC" > /etc/polkit-1/rules.d/50-omarchy-hotspot.rules
 chmod 644 /etc/polkit-1/rules.d/50-omarchy-hotspot.rules
 
 echo "==> Telling NetworkManager to leave ap0 alone"

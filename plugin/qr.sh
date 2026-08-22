@@ -13,6 +13,7 @@ pass="$(cat "$PASS_FILE" 2>/dev/null || true)"
 escape() {
   local v="$1"
   v="${v//\\/\\\\}"
+  v="${v//\"/\\\"}"
   v="${v//;/\\;}"
   v="${v//,/\\,}"
   v="${v//:/\\:}"
