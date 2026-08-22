@@ -295,11 +295,25 @@ status_text() {
 }
 
 set_password() {
-  local newpass="$1" byte_len
+  local newpass byte_len
+  # Read the passphrase from stdin (never argv) so it is not exposed via the
+  # process command line. Invoke as: printf '%s\n' "$pw" | helper set-password
+  # A single line is read, so the caller sends a trailing newline and need not
+  # close the stream (which would break repeated invocations).
+  IFS= read -r newpass
+  if [ -z "$newpass" ]; then
+    echo "No password provided on stdin" >&2
+    return 1
+  fi
   # WPA2-PSK passphrase rules: 8-63 bytes of printable ASCII. Reject control
   # characters, DEL, and any non-ASCII byte (UTF-8 would blow the 63-byte
-  # limit once encoded and could break hostapd.conf interpolation).
-  if printf '%s' "$newpass" | LC_ALL=C grep -q '[^[:print:]]'; then
+  # limit once encoded and could break hostapd.conf interpolation). Compare
+  # the total byte count against the printable-byte count so an embedded
+  # newline (which grep/command-substitution treat as a line break) is caught.
+  local total printable
+  total="$(printf '%s' "$newpass" | wc -c)"
+  printable="$(printf '%s' "$newpass" | LC_ALL=C tr -cd '[:print:]' | wc -c)"
+  if [ "$total" -ne "$printable" ]; then
     echo "Password must contain only printable ASCII characters" >&2
     return 1
   fi
@@ -362,7 +376,7 @@ case "${1:-status}" in
       start_ap
     fi
     ;;
-  set-password) set_password "${2:-}" ;;
+  set-password) set_password ;;
   test) run_tests ;;
   sniff)
     timeout 6 tcpdump -i "$VIF" -n -c 25 2>&1 | head -28
@@ -378,7 +392,7 @@ case "${1:-status}" in
     pgrep -a hostapd 2>&1
     ;;
   *)
-    echo "usage: omarchy-hotspot-helper {status|toggle|set-password <pass>|debug|test}" >&2
+    echo "usage: omarchy-hotspot-helper {status|toggle|set-password|debug|test}" >&2
     exit 2
     ;;
 esac

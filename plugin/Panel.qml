@@ -20,6 +20,7 @@ Panel {
   readonly property string helper: "/usr/local/bin/omarchy-hotspot-helper"
   readonly property string qrScript: decodeURIComponent(String(Qt.resolvedUrl("qr.sh")).replace(/^file:\/\//, ""))
   readonly property string hotspotSsid: "OmarchyHotspot"
+  readonly property string passwordFile: "/var/lib/omarchy-hotspot/password"
 
   // "off" | "on" | "busy" | "error"
   property string hotspotState: "off"
@@ -34,6 +35,7 @@ Panel {
   property string passwordDraft: ""
   property bool passwordBusy: false
   property string passwordError: ""
+  property string pendingPassword: ""
 
   property var qrRows: []
   property int qrSize: 0
@@ -124,7 +126,9 @@ Panel {
 
   function copyPassword() {
     if (!root.bar || !hotspotPassword) return
-    Quickshell.execDetached(["bash", "-c", "printf %s " + Util.shellQuote(hotspotPassword) + " | wl-copy"])
+    // Copy from the secret file (user-readable, 600) so the password never
+    // appears in a process command line.
+    Quickshell.execDetached(["bash", "-c", "cat " + root.passwordFile + " | wl-copy"])
     // Flash the copy icon to a checkmark so the click is visibly acknowledged.
     copyFlash = true
     copyFlashTimer.restart()
@@ -152,7 +156,10 @@ Panel {
     if (draft.length > 63) { passwordError = "Maximum 63 characters"; return }
     passwordBusy = true
     passwordError = ""
-    passProc.command = ["bash", "-c", "pkexec " + root.helper + " set-password " + Util.shellQuote(draft)]
+    // Feed the passphrase over stdin (not argv) so it is never exposed in the
+    // process command line. The helper reads it from stdin.
+    pendingPassword = draft
+    passProc.command = ["bash", "-c", "pkexec " + root.helper + " set-password"]
     passProc.running = true
   }
 
@@ -237,8 +244,14 @@ Panel {
 
   Process {
     id: passProc
+    stdinEnabled: true
     stdout: StdioCollector { id: passOut; waitForEnd: true }
     stderr: StdioCollector { id: passErr; waitForEnd: true }
+    onStarted: function() {
+      // Send the passphrase as a single line (newline-terminated); the helper
+      // reads one line, so we never need to close stdin.
+      passProc.write(root.pendingPassword + "\n")
+    }
     onExited: function(code) {
       passwordBusy = false
       if (code !== 0) {
