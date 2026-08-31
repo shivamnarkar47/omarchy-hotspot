@@ -245,7 +245,12 @@ start_ap() {
   local servers=()
   while read -r ns; do
     case "$ns" in
-      127.*|::1|"") ;;
+      # systemd-resolved can emit scoped link-local IPv6 DNS servers such as
+      # fe80::1%2. dnsmasq expects a usable interface scope there, but the
+      # numeric scope ID from resolv.conf is rejected as a bad interface name.
+      # Ignore scoped/link-local resolvers and use the remaining upstreams (or
+      # the public fallback below) instead.
+      127.*|::1|fe80:*|*%*|"") ;;
       *) servers+=(--server="$ns") ;;
     esac
   done < <(grep '^nameserver' /run/systemd/resolve/resolv.conf 2>/dev/null | awk '{print $2}' || true)
