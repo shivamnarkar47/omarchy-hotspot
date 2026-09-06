@@ -32,6 +32,16 @@ station_channel() {
   iw dev "$iface" info 2>/dev/null | awk '/channel/ { print $2; exit }'
 }
 
+# Returns 0 (true) if the specified channel has the "no IR" (No Initiate
+# Radiation) regulatory restriction on this Wi-Fi adapter. Adapters with
+# Location-Aware Regulatory (LAR) firmware (e.g. Intel cards) block AP mode
+# on channels marked NO-IR.
+channel_has_no_ir() {
+  local ch="$1"
+  [ -n "$ch" ] || return 1
+  iw list 2>/dev/null | grep -E "^\s*\* [0-9.]+ MHz \[$ch\]" | grep -q "(no IR)"
+}
+
 # Channel width the station uses ("20", "40", "80", "160"). iw prints one
 # line: "channel 1 (2412 MHz), width: 40 MHz, center1: 2422 MHz".
 station_width() {
@@ -220,6 +230,14 @@ EOF
 
 start_ap() {
   ensure_state
+
+  local ch
+  ch="$(station_channel || true)"
+  if [ -n "$ch" ] && channel_has_no_ir "$ch"; then
+    echo "This Wi-Fi card cannot share 5 GHz Wi-Fi (NO-IR restriction). Switch to 2.4 GHz Wi-Fi." >&2
+    exit 1
+  fi
+
   ensure_vif
   write_hostapd_conf
 
@@ -227,13 +245,18 @@ start_ap() {
   systemctl stop omarchy-hotspot 2>/dev/null || true
   # Transient unit: keeps hostapd in foreground (no -B fork bugs), logs to
   # journald, and survives the pkexec session.
-  if ! systemd-run --unit=omarchy-hotspot --collect hostapd "$AP_CONF"; then
-    iw dev "$VIF" del 2>/dev/null || true
-    exit 1
-  fi
+  systemd-run --quiet --unit=omarchy-hotspot --collect hostapd "$AP_CONF" 2>/dev/null || true
   sleep 1
   if ! systemctl is-active --quiet omarchy-hotspot; then
-    echo "hostapd failed to start (journalctl -u omarchy-hotspot)" >&2
+    local err_line=""
+    err_line="$(journalctl -u omarchy-hotspot -n 35 --no-pager 2>/dev/null | grep -E "flags:.*NO-IR|not allowed|failed|error" | tail -n 1 || true)"
+    if echo "$err_line" | grep -qi "NO-IR" || journalctl -u omarchy-hotspot -n 35 --no-pager 2>/dev/null | grep -qi "NO-IR"; then
+      echo "This Wi-Fi card cannot share 5 GHz Wi-Fi (NO-IR restriction). Switch to 2.4 GHz Wi-Fi." >&2
+    elif [ -n "$err_line" ]; then
+      echo "$err_line" | sed -E 's/^.*hostapd(\[[0-9]+\])?: //' | cut -c1-110 >&2
+    else
+      echo "hostapd failed to start (check journalctl -u omarchy-hotspot)" >&2
+    fi
     iw dev "$VIF" del 2>/dev/null || true
     exit 1
   fi
@@ -270,7 +293,7 @@ start_ap() {
     servers=(--server=1.1.1.1 --server=1.0.0.1)
   fi
   systemctl stop omarchy-hotspot-dns 2>/dev/null || true
-  systemd-run --unit=omarchy-hotspot-dns --collect dnsmasq \
+  systemd-run --quiet --unit=omarchy-hotspot-dns --collect dnsmasq \
     --keep-in-foreground \
     --interface="$VIF" \
     --bind-interfaces \
