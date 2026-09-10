@@ -86,7 +86,8 @@ cd omarchy-hotspot
 omarchy plugin remove io.github.shivamnarkar47.omarchy-hotspot --yes      # bar widget
 sudo rm /usr/local/bin/omarchy-hotspot-helper  # system helper
 sudo rm /etc/polkit-1/rules.d/50-omarchy-hotspot.rules
-sudo rm /etc/NetworkManager/conf.d/99-unmanaged-ap0.conf
+sudo rm /etc/NetworkManager/conf.d/zz-omarchy-hotspot-unmanaged.conf
+sudo rm /etc/NetworkManager/conf.d/99-unmanaged-ap0.conf  # legacy path (pre-merge fix)
 nmcli general reload
 sudo pacman -Rns hostapd dnsmasq               # optional: if nothing else uses them
 ```
@@ -107,6 +108,7 @@ sudo pacman -Rns hostapd dnsmasq               # optional: if nothing else uses 
 | Phone can't see the AP | AP channel width ≠ station width. Recreate the profile / check `journalctl -u omarchy-hotspot`. |
 | Connects but no internet | Check `iptables -L INPUT -n` — UFW's DROP policy must not cover `ap0` (the helper inserts an ACCEPT). |
 | `nl80211: Match already configured` | The `ap0` vif must be `ip link set up` **before** hostapd starts (the helper does this). |
+| `RTNETLINK answers: Device or resource busy` | Another `conf.d` file overwrote `unmanaged-devices` so NM re-manages `ap0` (`iw dev ap0` shows `type managed`, `nmcli` shows `unavailable` instead of `unmanaged`). Re-run `./install.sh` (it now merges entries into `zz-omarchy-hotspot-unmanaged.conf`, e.g. `ap0;lerd0`), then `sudo iw dev ap0 del` and toggle again. Verify with `NetworkManager --print-config \| grep unmanaged`. |
 | No DHCP | `journalctl -u omarchy-hotspot-dns` — verify `--log-dhcp` shows DISCOVER → OFFER → ACK. |
 | Turned on but nothing happens / no error | Opening the popup when the hotspot fails now shows a red **HOTSPOT FAILED TO START** banner with the reason. If the panel stays silent, the toggle itself may not have run the helper (polkit) — check `journalctl -u omarchy-hotspot` and that the passwordless pkexec rule in `/etc/polkit-1/rules.d/50-omarchy-hotspot.rules` matches your user. |
 
