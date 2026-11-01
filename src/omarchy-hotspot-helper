@@ -198,12 +198,16 @@ write_hostapd_conf() {
       ;;
   esac
 
+  # Without ieee80211n + WMM hostapd runs legacy 802.11g/a (54 Mbit/s max)
+  # and ignores ht_capab entirely.
   cat >"$AP_CONF" <<EOF
 interface=$VIF
 driver=nl80211
 ssid=$(ap_ssid)
 hw_mode=$mode
 channel=$channel
+wmm_enabled=1
+ieee80211n=1
 wpa=2
 wpa_passphrase=$(cat "$PASS_FILE")
 wpa_key_mgmt=WPA-PSK
